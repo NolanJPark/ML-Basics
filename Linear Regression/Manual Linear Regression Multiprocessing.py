@@ -64,20 +64,36 @@ def regression(data, alpha, MaxIter, threshold, thetas):
     pool.join()
     return thetas
 
+def prep_data(path):
+    df = pd.read_csv(path)
+
+    # Force numeric everywhere
+    df = df.apply(pd.to_numeric, errors='coerce')
+    df = df.dropna()
+
+    # Normalize features (exclude target)
+    feature_cols = df.columns[1:]
+    df[feature_cols] = (df[feature_cols] - df[feature_cols].mean()) / df[feature_cols].std()
+
+    # Split explicitly
+    X = df.iloc[:, 1:].to_numpy(dtype=np.float64)  # features
+    y = df.iloc[:, 0].to_numpy(dtype=np.float64)  # target
+
+    return X, y
+
 # Since we're performing multiprocessing we need a 'main' for it to find
 if __name__ == '__main__':
-    # Basic variables and importing the dataset is moved into the main
-    df = pd.read_csv('mpg.csv')
-    df["horsepower"] = pd.to_numeric(df["horsepower"], errors="coerce")
-    df = df.dropna(subset=["horsepower"])
-    feature_cols = df.columns[1:7]
-    means = df[feature_cols].mean()
-    stds = df[feature_cols].std()
-    df[feature_cols] = (df[feature_cols] - means) / stds
-    data = df.to_numpy(dtype=float)
-    alpha = 0.000001
-    MaxIter = 10000
-    threshold = 0.000001
-    thetas = [15, 7, 2, 4, 9, 11, 6]
-    regression(data, alpha, MaxIter, threshold, thetas)
-    print("Final thetas:", thetas)
+    X, y = prep_data('mpg.csv')
+
+    thetas = np.zeros(X.shape[1])  # automatically correct size
+
+    result = regression(
+        X,
+        y,
+        alpha=1e-6,
+        max_iter=10000,
+        threshold=1e-6,
+        thetas=thetas
+    )
+
+    print("Final thetas:", result)
